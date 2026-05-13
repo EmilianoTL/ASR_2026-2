@@ -10,7 +10,7 @@ def consulta_snmp_v3(oid):
             authKey=Config.AUTH_PWD, 
             privKey=Config.PRIV_PWD,
             authProtocol=usmHMACSHAAuthProtocol,
-            privProtocol=usmAesCfb128Protocol
+            privProtocol=usmDESPrivProtocol
         ),
         UdpTransportTarget((Config.IP_ROUTER, 161)),
         ContextData(),
