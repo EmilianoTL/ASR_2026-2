@@ -21,4 +21,8 @@ def consulta_snmp_v3(oid):
     if errorIndication or errorStatus:
         return None
     for varBind in varBinds:
-        return int(varBind[1])
+        try:
+            return int(varBind[1])
+        except (ValueError, TypeError):
+            # Si el router devuelve "NoSuchInstance", devolvemos 0 en lugar de crashear
+            return 0
