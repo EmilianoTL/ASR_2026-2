@@ -1,28 +1,42 @@
+import asyncio
 from pysnmp.hlapi.v3arch.asyncio import *
 from app.config import Config
 
-def consulta_snmp_v3(oid):
-    """Realiza una consulta GET usando SNMPv3."""
-    iterator = get_cmd(
+async def _consulta_asincrona(oid):
+    """Realiza la consulta real usando la nueva sintaxis asíncrona de PySNMP 7+"""
+    
+    # 1. Creamos el objetivo de red con el nuevo método await .create() que pedía el error
+    transportTarget = await UdpTransportTarget.create((Config.IP_ROUTER, 161))
+    
+    # 2. Ejecutamos la consulta (ahora se usa 'await' en lugar de 'next')
+    errorIndication, errorStatus, errorIndex, varBinds = await getCmd(
         SnmpEngine(),
         UsmUserData(
             Config.SNMP_USER, 
             authKey=Config.AUTH_PWD, 
             privKey=Config.PRIV_PWD,
             authProtocol=usmHMACSHAAuthProtocol,
-            privProtocol=usmDESPrivProtocol
+            privProtocol=usmAesCfb128Protocol
         ),
-        UdpTransportTarget((Config.IP_ROUTER, 161)),
+        transportTarget,
         ContextData(),
         ObjectType(ObjectIdentity(oid))
     )
     
-    errorIndication, errorStatus, errorIndex, varBinds = next(iterator)
     if errorIndication or errorStatus:
-        return None
+        return 0
+        
     for varBind in varBinds:
         try:
             return int(varBind[1])
         except (ValueError, TypeError):
-            # Si el router devuelve "NoSuchInstance", devolvemos 0 en lugar de crashear
             return 0
+
+def consulta_snmp_v3(oid):
+    """
+    Función envoltorio (wrapper) síncrona.
+    Permite que el resto de tu aplicación (como el hilo de monitoreo)
+    siga llamando a 'consulta_snmp_v3' de forma normal, mientras Python
+    maneja la complejidad asíncrona en segundo plano.
+    """
+    return asyncio.run(_consulta_asincrona(oid))
