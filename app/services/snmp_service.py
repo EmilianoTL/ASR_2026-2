@@ -9,7 +9,7 @@ async def _consulta_asincrona(oid):
     transportTarget = await UdpTransportTarget.create((Config.IP_ROUTER, 161))
     
     # 2. Ejecutamos la consulta (ahora se usa 'await' en lugar de 'next')
-    errorIndication, errorStatus, errorIndex, varBinds = await getCmd(
+    errorIndication, errorStatus, errorIndex, varBinds = await get_cmd(
         SnmpEngine(),
         UsmUserData(
             Config.SNMP_USER, 
