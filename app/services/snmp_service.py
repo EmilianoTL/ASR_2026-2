@@ -3,7 +3,7 @@ from app.config import Config
 
 def consulta_snmp_v3(oid):
     """Realiza una consulta GET usando SNMPv3."""
-    iterator = getCmd(
+    iterator = getcmd(
         SnmpEngine(),
         UsmUserData(
             Config.SNMP_USER, 
