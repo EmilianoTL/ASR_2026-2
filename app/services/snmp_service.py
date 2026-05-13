@@ -1,4 +1,4 @@
-from pysnmp.hlapi import *
+from pysnmp.hlapi.v3arch.asyncio import *
 from app.config import Config
 
 def consulta_snmp_v3(oid):
