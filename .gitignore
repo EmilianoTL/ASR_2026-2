@@ -1,0 +1,27 @@
+# Entornos virtuales (nombres comunes)
+venv/
+.venv/
+env/
+.env/
+ENV/
+bin/
+lib/
+include/
+
+# Caché de Python y archivos compilados
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Archivos temporales de sistemas o editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.bak
+
+# Logs y bases de datos locales
+*.log
+local_settings.py
+db.sqlite3
