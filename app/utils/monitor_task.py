@@ -45,10 +45,14 @@ def tarea_monitoreo():
               f"estado_admin={estado_admin} ({'UP' if estado_admin == 1 else 'DOWN'}) "
               f"(snmp={'OK' if estado_raw is not None else 'FALLO'})")
 
-        delta_paquetes = paquetes_actuales - paquetes_anteriores
-        if delta_paquetes < 0:
-            delta_paquetes = 0
-        paquetes_anteriores = paquetes_actuales
+        # Calcular delta; Counter32 desborda en 2^32 ≈ 4.29 mil millones
+        if paquetes_raw is not None:
+            delta_paquetes = paquetes_actuales - paquetes_anteriores
+            if delta_paquetes < 0:
+                delta_paquetes = (2**32) + delta_paquetes  # wrap-around Counter32
+            paquetes_anteriores = paquetes_actuales
+        else:
+            delta_paquetes = 0  # SNMP falló, no actualizar base
 
         estado_grafica = 100 if estado_admin == 1 else 0
 
