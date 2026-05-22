@@ -30,7 +30,7 @@ def detener_monitoreo():
         "muestras_finales": monitor_state["datos_capturados"]
     })
 
-@api_bp.route('/R1/monitoreo/f2_2/grafica', methods=['GET'])
+@api_bp.route('/R1/monitoreo/f2_0/grafica', methods=['GET'])
 def generar_grafica():
     svg_data = generar_svg(monitor_state["datos_capturados"])
     
