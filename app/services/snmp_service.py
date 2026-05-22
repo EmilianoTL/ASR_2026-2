@@ -12,7 +12,7 @@ async def _consulta_asincrona(oid):
             authKey=Config.AUTH_PWD,
             privKey=Config.PRIV_PWD,
             authProtocol=usmHMACSHAAuthProtocol,
-            privProtocol=usmAesCfb128Protocol
+            privProtocol=usmDESPrivProtocol
         ),
         transportTarget,
         ContextData(),
