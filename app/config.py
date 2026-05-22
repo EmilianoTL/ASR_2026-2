@@ -1,10 +1,8 @@
 class Config:
-    # SNMPv3 Settings
-    SNMP_USER = 'admin_snmp'
-    AUTH_PWD = 'MiPasswordAuth'
-    PRIV_PWD = 'MiPasswordPriv'
-    IP_ROUTER = '192.168.3.1'
-    
-    INDICE_F2_0 = "4"
-    OID_UNICAST_IN = f"1.3.6.1.2.1.2.2.1.11.{INDICE_F2_0}"
+    # SNMPv2c
+    SNMP_COMMUNITY = 'public'
+    IP_ROUTER      = '192.168.3.1'
+
+    INDICE_F2_0    = "4"
+    OID_UNICAST_IN  = f"1.3.6.1.2.1.2.2.1.11.{INDICE_F2_0}"
     OID_ADMIN_STATUS = f"1.3.6.1.2.1.2.2.1.7.{INDICE_F2_0}"
