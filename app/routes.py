@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, make_response
-from app.utils.monitor_task import monitor_state, iniciar_hilo, detener_hilo
+from app.utils.monitor_task import monitor_state, iniciar_hilo, detener_hilo, calcular_deltas
 from app.services.graph_service import generar_svg
 
 api_bp = Blueprint('api', __name__)
@@ -44,16 +44,17 @@ def iniciar_monitoreo(tiempo):
 # ---------------------------------------------------------------------------
 @api_bp.route('/R1/monitoreo/f2_0', methods=['GET'])
 def obtener_datos():
-    n      = len(monitor_state["datos_capturados"])
-    estado = "activo" if monitor_state["activo"] else "detenido"
-    print(f"[GET 200] /R1/monitoreo/f2_0 → estado={estado} | muestras={n} | "
+    estado   = "activo" if monitor_state["activo"] else "detenido"
+    muestras = calcular_deltas(monitor_state["datos_capturados"])
+    n        = len(muestras)
+    print(f"[GET 200] /R1/monitoreo/f2_0 → estado={estado} | deltas={n} | "
           f"intervalo={monitor_state['intervalo']}s")
     return jsonify({
         "interfaz":           "FastEthernet2/0",
         "estado_monitoreo":   estado,
         "intervalo_segundos": monitor_state["intervalo"],
         "total_muestras":     n,
-        "muestras":           monitor_state["datos_capturados"],
+        "muestras":           muestras,
     }), 200
 
 
@@ -97,10 +98,10 @@ def detener_monitoreo():
         print("[DELETE 409] No hay monitoreo activo")
         return _error("No hay monitoreo activo para detener.", 409)
 
-    # Capturar muestras ANTES de detener
-    muestras = list(monitor_state["datos_capturados"])
+    # Calcular deltas y detener
+    muestras = calcular_deltas(monitor_state["datos_capturados"])
     detener_hilo()
-    print(f"[DELETE 200] /R1/monitoreo/f2_0 → {len(muestras)} muestras devueltas")
+    print(f"[DELETE 200] /R1/monitoreo/f2_0 → {len(muestras)} deltas devueltos")
     return jsonify({
         "mensaje":        "Monitoreo detenido",
         "interfaz":       "FastEthernet2/0",
