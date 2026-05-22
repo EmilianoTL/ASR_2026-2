@@ -10,9 +10,7 @@ async def _consulta_asincrona(oid):
         UsmUserData(
             Config.SNMP_USER,
             authKey=Config.AUTH_PWD,
-            privKey=Config.PRIV_PWD,
             authProtocol=usmHMACSHAAuthProtocol,
-            privProtocol=usmDESPrivProtocol
         ),
         transportTarget,
         ContextData(),
