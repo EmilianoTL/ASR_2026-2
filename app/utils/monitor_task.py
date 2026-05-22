@@ -3,7 +3,6 @@ import threading
 from app.services.snmp_service import consulta_snmp_v3
 from app.config import Config
 
-# Diccionario para mantener el estado global del monitoreo
 monitor_state = {
     "activo": False,
     "intervalo": 20,
@@ -12,37 +11,71 @@ monitor_state = {
 }
 
 def tarea_monitoreo():
+    print(f"[HILO] Iniciado. Intervalo={monitor_state['intervalo']}s | IP router={Config.IP_ROUTER}")
+    print(f"[HILO] OID unicast={Config.OID_UNICAST_IN} | OID admin={Config.OID_ADMIN_STATUS}")
+
     paquetes_anteriores = consulta_snmp_v3(Config.OID_UNICAST_IN) or 0
-    
+    print(f"[HILO] Valor inicial paquetes unicast: {paquetes_anteriores}")
+
     while monitor_state["activo"]:
-        time.sleep(monitor_state["intervalo"])
-        
+        intervalo_objetivo = monitor_state["intervalo"]
+        print(f"[HILO] Esperando {intervalo_objetivo}s para siguiente muestra...")
+
+        # Sleep en trozos de 1s para reaccionar a cambios de intervalo
+        inicio = time.time()
+        while monitor_state["activo"]:
+            time.sleep(1)
+            if time.time() - inicio >= monitor_state["intervalo"]:
+                break
+
+        if not monitor_state["activo"]:
+            break
+
+        ts = time.strftime('%H:%M:%S')
         paquetes_actuales = consulta_snmp_v3(Config.OID_UNICAST_IN) or 0
-        estado_admin = consulta_snmp_v3(Config.OID_ADMIN_STATUS) or 2 # 1=Up, 2=Down
-        
+        estado_admin = consulta_snmp_v3(Config.OID_ADMIN_STATUS) or 2
+
+        print(f"[MUESTRA {ts}] paquetes_actuales={paquetes_actuales} | "
+              f"paquetes_anteriores={paquetes_anteriores} | estado_admin={estado_admin} "
+              f"({'UP' if estado_admin == 1 else 'DOWN'})")
+
         delta_paquetes = paquetes_actuales - paquetes_anteriores
-        if delta_paquetes < 0: delta_paquetes = 0
+        if delta_paquetes < 0:
+            delta_paquetes = 0
         paquetes_anteriores = paquetes_actuales
-        
+
         estado_grafica = 100 if estado_admin == 1 else 0
-        
+
         muestra = {
-            "tiempo": time.strftime('%H:%M:%S'),
+            "tiempo": ts,
             "delta_paquetes": delta_paquetes,
             "estado_admin_raw": estado_admin,
             "estado_grafica": estado_grafica
         }
         monitor_state["datos_capturados"].append(muestra)
+        print(f"[MUESTRA {ts}] Guardada → delta={delta_paquetes} | "
+              f"total muestras={len(monitor_state['datos_capturados'])}")
+
+    print("[HILO] Detenido.")
+
 
 def iniciar_hilo(tiempo):
+    # Si ya hay un hilo corriendo, detenerlo primero
+    if monitor_state["activo"]:
+        print(f"[API] Monitoreo ya activo. Reiniciando con nuevo intervalo={tiempo}s")
+        monitor_state["activo"] = False
+        if monitor_state["hilo"] and monitor_state["hilo"].is_alive():
+            monitor_state["hilo"].join(timeout=3)
+
     monitor_state["intervalo"] = tiempo
     monitor_state["datos_capturados"] = []
-    
-    if not monitor_state["activo"]:
-        monitor_state["activo"] = True
-        monitor_state["hilo"] = threading.Thread(target=tarea_monitoreo)
-        monitor_state["hilo"].daemon = True
-        monitor_state["hilo"].start()
+    monitor_state["activo"] = True
+
+    monitor_state["hilo"] = threading.Thread(target=tarea_monitoreo, daemon=True)
+    monitor_state["hilo"].start()
+    print(f"[API] Hilo de monitoreo arrancado con intervalo={tiempo}s")
+
 
 def detener_hilo():
+    print("[API] Deteniendo monitoreo...")
     monitor_state["activo"] = False
