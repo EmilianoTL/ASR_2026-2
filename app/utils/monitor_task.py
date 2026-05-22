@@ -14,8 +14,10 @@ def tarea_monitoreo():
     print(f"[HILO] Iniciado. Intervalo={monitor_state['intervalo']}s | IP router={Config.IP_ROUTER}")
     print(f"[HILO] OID unicast={Config.OID_UNICAST_IN} | OID admin={Config.OID_ADMIN_STATUS}")
 
-    paquetes_anteriores = consulta_snmp_v3(Config.OID_UNICAST_IN) or 0
-    print(f"[HILO] Valor inicial paquetes unicast: {paquetes_anteriores}")
+    paquetes_anteriores_raw = consulta_snmp_v3(Config.OID_UNICAST_IN)
+    paquetes_anteriores = paquetes_anteriores_raw if paquetes_anteriores_raw is not None else 0
+    print(f"[HILO] Valor inicial paquetes unicast: {paquetes_anteriores} "
+          f"({'OK' if paquetes_anteriores_raw is not None else 'FALLO SNMP - revisa credenciales/índice'})")
 
     while monitor_state["activo"]:
         intervalo_objetivo = monitor_state["intervalo"]
@@ -32,12 +34,16 @@ def tarea_monitoreo():
             break
 
         ts = time.strftime('%H:%M:%S')
-        paquetes_actuales = consulta_snmp_v3(Config.OID_UNICAST_IN) or 0
-        estado_admin = consulta_snmp_v3(Config.OID_ADMIN_STATUS) or 2
+        paquetes_raw = consulta_snmp_v3(Config.OID_UNICAST_IN)
+        estado_raw   = consulta_snmp_v3(Config.OID_ADMIN_STATUS)
 
-        print(f"[MUESTRA {ts}] paquetes_actuales={paquetes_actuales} | "
-              f"paquetes_anteriores={paquetes_anteriores} | estado_admin={estado_admin} "
-              f"({'UP' if estado_admin == 1 else 'DOWN'})")
+        # None = fallo SNMP; usar último valor conocido para paquetes y asumir DOWN
+        paquetes_actuales = paquetes_raw if paquetes_raw is not None else paquetes_anteriores
+        estado_admin      = estado_raw   if estado_raw  is not None else 2
+
+        print(f"[MUESTRA {ts}] paquetes={paquetes_actuales} (snmp={'OK' if paquetes_raw is not None else 'FALLO'}) | "
+              f"estado_admin={estado_admin} ({'UP' if estado_admin == 1 else 'DOWN'}) "
+              f"(snmp={'OK' if estado_raw is not None else 'FALLO'})")
 
         delta_paquetes = paquetes_actuales - paquetes_anteriores
         if delta_paquetes < 0:

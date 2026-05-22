@@ -3,17 +3,13 @@ from pysnmp.hlapi.v3arch.asyncio import *
 from app.config import Config
 
 async def _consulta_asincrona(oid):
-    """Realiza la consulta real usando la nueva sintaxis asíncrona de PySNMP 7+"""
-    
-    # 1. Creamos el objetivo de red con el nuevo método await .create() que pedía el error
-    transportTarget = await UdpTransportTarget.create((Config.IP_ROUTER, 161))
-    
-    # 2. Ejecutamos la consulta (ahora se usa 'await' en lugar de 'next')
+    transportTarget = await UdpTransportTarget.create((Config.IP_ROUTER, 161), timeout=2, retries=1)
+
     errorIndication, errorStatus, errorIndex, varBinds = await get_cmd(
         SnmpEngine(),
         UsmUserData(
-            Config.SNMP_USER, 
-            authKey=Config.AUTH_PWD, 
+            Config.SNMP_USER,
+            authKey=Config.AUTH_PWD,
             privKey=Config.PRIV_PWD,
             authProtocol=usmHMACSHAAuthProtocol,
             privProtocol=usmAesCfb128Protocol
@@ -22,21 +18,29 @@ async def _consulta_asincrona(oid):
         ContextData(),
         ObjectType(ObjectIdentity(oid))
     )
-    
-    if errorIndication or errorStatus:
-        return 0
-        
+
+    if errorIndication:
+        print(f"[SNMP ERROR] OID={oid} | errorIndication={errorIndication}")
+        return None
+
+    if errorStatus:
+        print(f"[SNMP ERROR] OID={oid} | errorStatus={errorStatus.prettyPrint()} "
+              f"en índice {errorIndex}")
+        return None
+
     for varBind in varBinds:
+        oid_resp, valor = varBind
+        print(f"[SNMP OK] OID={oid_resp.prettyPrint()} → valor={valor.prettyPrint()} "
+              f"(tipo={type(valor).__name__})")
         try:
-            return int(varBind[1])
+            return int(valor)
         except (ValueError, TypeError):
-            return 0
+            print(f"[SNMP WARN] No se pudo convertir a int: {valor!r}")
+            return None
+
+    print(f"[SNMP WARN] OID={oid} → respuesta vacía")
+    return None
+
 
 def consulta_snmp_v3(oid):
-    """
-    Función envoltorio (wrapper) síncrona.
-    Permite que el resto de tu aplicación (como el hilo de monitoreo)
-    siga llamando a 'consulta_snmp_v3' de forma normal, mientras Python
-    maneja la complejidad asíncrona en segundo plano.
-    """
     return asyncio.run(_consulta_asincrona(oid))
