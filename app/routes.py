@@ -4,49 +4,133 @@ from app.services.graph_service import generar_svg
 
 api_bp = Blueprint('api', __name__)
 
+
+def _error(mensaje, codigo):
+    return jsonify({"error": mensaje, "codigo": codigo}), codigo
+
+
+# ---------------------------------------------------------------------------
+# POST /R1/monitoreo/f2_0/<tiempo>
+# Inicia el monitoreo en f2/0 cada <tiempo> segundos eliminando capturas
+# anteriores.
+# 201 Created  → monitoreo iniciado por primera vez
+# 200 OK       → monitoreo reiniciado (ya estaba activo)
+# 400 Bad Request → tiempo inválido
+# ---------------------------------------------------------------------------
 @api_bp.route('/R1/monitoreo/f2_0/<int:tiempo>', methods=['POST'])
 def iniciar_monitoreo(tiempo):
-    print(f"[POST] /R1/monitoreo/f2_0/{tiempo} → Iniciando monitoreo")
-    iniciar_hilo(tiempo)
-    return jsonify({"mensaje": "Monitoreo iniciado", "intervalo": tiempo})
+    if tiempo <= 0:
+        print(f"[POST 400] tiempo={tiempo} inválido")
+        return _error("El tiempo de muestreo debe ser un entero mayor a 0.", 400)
 
+    ya_activo = monitor_state["activo"]
+    iniciar_hilo(tiempo)
+
+    codigo  = 200 if ya_activo else 201
+    mensaje = "Monitoreo reiniciado" if ya_activo else "Monitoreo iniciado"
+    print(f"[POST {codigo}] /R1/monitoreo/f2_0/{tiempo} → {mensaje}")
+    return jsonify({
+        "mensaje":             mensaje,
+        "interfaz":            "FastEthernet2/0",
+        "estado_monitoreo":    "activo",
+        "intervalo_segundos":  tiempo,
+    }), codigo
+
+
+# ---------------------------------------------------------------------------
+# GET /R1/monitoreo/f2_0
+# Devuelve el historial de muestras y el estado de la interfaz.
+# 200 OK siempre (lista vacía si aún no hay muestras)
+# ---------------------------------------------------------------------------
 @api_bp.route('/R1/monitoreo/f2_0', methods=['GET'])
 def obtener_datos():
-    n = len(monitor_state["datos_capturados"])
-    estado = "Activo" if monitor_state["activo"] else "Detenido"
-    print(f"[GET] /R1/monitoreo/f2_0 → estado={estado} | muestras={n} | intervalo={monitor_state['intervalo']}s")
+    n      = len(monitor_state["datos_capturados"])
+    estado = "activo" if monitor_state["activo"] else "detenido"
+    print(f"[GET 200] /R1/monitoreo/f2_0 → estado={estado} | muestras={n} | "
+          f"intervalo={monitor_state['intervalo']}s")
     return jsonify({
-        "muestras": monitor_state["datos_capturados"],
-        "estado_interfaz": estado
-    })
+        "interfaz":           "FastEthernet2/0",
+        "estado_monitoreo":   estado,
+        "intervalo_segundos": monitor_state["intervalo"],
+        "total_muestras":     n,
+        "muestras":           monitor_state["datos_capturados"],
+    }), 200
 
+
+# ---------------------------------------------------------------------------
+# PUT /R1/monitoreo/f2_0/<tiempo>
+# Cambia el intervalo de muestreo en un monitoreo activo.
+# 200 OK        → intervalo actualizado
+# 400 Bad Request → tiempo inválido
+# 409 Conflict  → no hay monitoreo activo
+# ---------------------------------------------------------------------------
 @api_bp.route('/R1/monitoreo/f2_0/<int:tiempo>', methods=['PUT'])
 def actualizar_tiempo(tiempo):
+    if tiempo <= 0:
+        print(f"[PUT 400] tiempo={tiempo} inválido")
+        return _error("El tiempo de muestreo debe ser un entero mayor a 0.", 400)
+
+    if not monitor_state["activo"]:
+        print("[PUT 409] No hay monitoreo activo")
+        return _error("No hay monitoreo activo. Use POST para iniciar uno.", 409)
+
     anterior = monitor_state["intervalo"]
     monitor_state["intervalo"] = tiempo
-    print(f"[PUT] /R1/monitoreo/f2_0/{tiempo} → Intervalo cambiado de {anterior}s a {tiempo}s")
-    return jsonify({"mensaje": "Tiempo actualizado", "nuevo_intervalo": tiempo})
+    print(f"[PUT 200] /R1/monitoreo/f2_0/{tiempo} → {anterior}s → {tiempo}s")
+    return jsonify({
+        "mensaje":                    "Intervalo de muestreo actualizado",
+        "interfaz":                   "FastEthernet2/0",
+        "intervalo_anterior_segundos": anterior,
+        "intervalo_nuevo_segundos":    tiempo,
+    }), 200
 
+
+# ---------------------------------------------------------------------------
+# DELETE /R1/monitoreo/f2_0
+# Detiene el monitoreo y devuelve todas las muestras capturadas.
+# 200 OK       → monitoreo detenido
+# 409 Conflict → no había monitoreo activo
+# ---------------------------------------------------------------------------
 @api_bp.route('/R1/monitoreo/f2_0', methods=['DELETE'])
 def detener_monitoreo():
-    n = len(monitor_state["datos_capturados"])
-    print(f"[DELETE] /R1/monitoreo/f2_0 → Deteniendo. Muestras capturadas={n}")
-    detener_hilo()
-    return jsonify({
-        "mensaje": "Monitoreo detenido",
-        "muestras_finales": monitor_state["datos_capturados"]
-    })
+    if not monitor_state["activo"]:
+        print("[DELETE 409] No hay monitoreo activo")
+        return _error("No hay monitoreo activo para detener.", 409)
 
+    # Capturar muestras ANTES de detener
+    muestras = list(monitor_state["datos_capturados"])
+    detener_hilo()
+    print(f"[DELETE 200] /R1/monitoreo/f2_0 → {len(muestras)} muestras devueltas")
+    return jsonify({
+        "mensaje":        "Monitoreo detenido",
+        "interfaz":       "FastEthernet2/0",
+        "total_muestras": len(muestras),
+        "muestras":       muestras,
+    }), 200
+
+
+# ---------------------------------------------------------------------------
+# GET /R1/monitoreo/f2_0/grafica
+# Genera y devuelve la gráfica SVG con tráfico y estado administrativo.
+# 200 OK    → SVG generado correctamente
+# 404 Not Found → sin datos para graficar
+# ---------------------------------------------------------------------------
 @api_bp.route('/R1/monitoreo/f2_0/grafica', methods=['GET'])
 def generar_grafica():
     n = len(monitor_state["datos_capturados"])
-    print(f"[GET] /R1/monitoreo/f2_0/grafica → Generando gráfica con {n} muestras")
+    print(f"[GET] /R1/monitoreo/f2_0/grafica → {n} muestras disponibles")
+
     svg_data = generar_svg(monitor_state["datos_capturados"])
 
     if not svg_data:
-        print("[GET] /R1/monitoreo/f2_0/grafica → Sin datos suficientes")
-        return jsonify({"error": "No hay datos suficientes para graficar"}), 400
+        print("[GET 404] /R1/monitoreo/f2_0/grafica → sin datos")
+        return _error(
+            "No hay datos para graficar. Inicie el monitoreo con POST "
+            "/R1/monitoreo/f2_0/<tiempo> y espere al menos una muestra.",
+            404
+        )
 
+    print(f"[GET 200] /R1/monitoreo/f2_0/grafica → SVG generado ({n} muestras)")
     response = make_response(svg_data)
     response.headers['Content-Type'] = 'image/svg+xml'
-    return response
+    return response, 200
