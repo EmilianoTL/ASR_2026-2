@@ -125,8 +125,8 @@ def generar_grafica():
     if not svg_data:
         print("[GET 404] /R1/monitoreo/f2_0/grafica → sin datos")
         return _error(
-            "No hay datos para graficar. Inicie el monitoreo con POST "
-            "/R1/monitoreo/f2_0/<tiempo> y espere al menos una muestra.",
+            "Se necesitan al menos 2 muestras para graficar. Inicie el monitoreo "
+            "con POST /R1/monitoreo/f2_0/<tiempo> y espere al menos 2 muestras.",
             404
         )
 
