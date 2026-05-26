@@ -1,0 +1,19 @@
+*venvs/
+*.pyc  
+__pycache__/
+*.pyo
+*.pyd
+*.db
+*.sqlite
+*.log
+*.bak
+*.tmp
+*.swp
+.DS_Store
+.idea/
+# Ignorar archivos de configuración de entorno virtual
+venv/
+env/
+# Ignorar archivos de configuración de IDE
+.vscode/
+# Ignorar archivos de configuración de PyCharm
