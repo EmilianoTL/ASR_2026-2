@@ -1,2 +1,2 @@
 flask
-paramiko
+paramiko==2.11.0

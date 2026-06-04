@@ -22,25 +22,22 @@ def execute_commands(router_key: str, commands: list[str]) -> dict:
     try:
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        
+        # Deshabilitamos la preferencia de Paramiko por llaves modernas 
+        # para forzar la compatibilidad con Cisco IOS
         client.connect(
             hostname = router["host"],
             port     = router["port"],
             username = router["username"],
             password = router["password"],
             timeout  = 10,
+            look_for_keys=False,
+            allow_agent=False,
+            disabled_algorithms={'pubkeys': ['rsa-sha2-256', 'rsa-sha2-512']}
         )
 
         channel = client.invoke_shell()
         time.sleep(0.5)
-
-        for cmd in commands:
-            channel.send(cmd + "\n")
-            time.sleep(0.3)
-
-        output = channel.recv(65535).decode(errors="ignore")
-        client.close()
-
-        return {"router": router_key, "host": router["host"], "output": output}
 
     except Exception as e:
         return {"router": router_key, "error": str(e)}
