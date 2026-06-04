@@ -39,6 +39,21 @@ def execute_commands(router_key: str, commands: list[str]) -> dict:
         channel = client.invoke_shell()
         time.sleep(0.5)
 
+        # --- SECCIÓN RECUPERADA: Enviar los comandos ---
+        for cmd in commands:
+            channel.send(cmd + "\n")
+            time.sleep(0.3)
+
+        # Leer la respuesta del router
+        output = channel.recv(65535).decode(errors="ignore")
+        
+        # Cerrar la conexión
+        client.close()
+
+        # Retornar el resultado exitoso
+        return {"router": router_key, "host": router["host"], "output": output}
+        # -----------------------------------------------
+
     except Exception as e:
         return {"router": router_key, "error": str(e)}
 
