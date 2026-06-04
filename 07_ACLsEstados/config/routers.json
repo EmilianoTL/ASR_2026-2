@@ -1,0 +1,32 @@
+{
+  "Edge": {
+    "host"    : "10.10.10.1",
+    "username": "admin",
+    "password": "Admin123",
+    "port"    : 22
+  },
+  "R1": {
+    "host"    : "10.10.10.2",
+    "username": "admin",
+    "password": "Admin123",
+    "port"    : 22
+  },
+  "R2": {
+    "host"    : "10.10.10.6",
+    "username": "admin",
+    "password": "Admin123",
+    "port"    : 22
+  },
+  "TOR1": {
+    "host"    : "10.10.10.14",
+    "username": "admin",
+    "password": "Admin123",
+    "port"    : 22
+  },
+  "TOR2": {
+    "host"    : "10.10.10.18",
+    "username": "admin",
+    "password": "Admin123",
+    "port"    : 22
+  }
+}

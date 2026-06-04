@@ -1,0 +1,82 @@
+{
+  "clear": {
+    "description": "Elimina todas las ACLs activas",
+    "Edge" : [
+      "enable",
+      "configure terminal",
+      "no ip access-list standard BLOCK_DDOS",
+      "interface FastEthernet0/0",
+      "no ip access-group BLOCK_DDOS in",
+      "end"
+    ],
+    "TOR1" : [
+      "enable",
+      "configure terminal",
+      "no ip access-list extended BLOCK_HTTP_USR",
+      "interface FastEthernet0/0",
+      "no ip access-group BLOCK_HTTP_USR in",
+      "end"
+    ],
+    "TOR2" : [
+      "enable",
+      "configure terminal",
+      "no ip access-list extended CTRL_ADMIN",
+      "interface FastEthernet2/1",
+      "no ip access-group CTRL_ADMIN in",
+      "end"
+    ]
+  },
+
+  "1": {
+    "description": "Mitigación DDoS — bloquea Internet hacia Intranet",
+    "Edge": [
+      "enable",
+      "configure terminal",
+      "ip access-list standard BLOCK_DDOS",
+      "permit 192.168.110.0 0.0.0.255",
+      "permit 192.168.120.0 0.0.0.255",
+      "deny any log",
+      "exit",
+      "interface FastEthernet0/0",
+      "ip access-group BLOCK_DDOS in",
+      "end"
+    ]
+  },
+
+  "2": {
+    "description": "Prevención filtraciones — bloquea HTTP/HTTPS desde PCUsuarios",
+    "TOR1": [
+      "enable",
+      "configure terminal",
+      "ip access-list extended BLOCK_HTTP_USR",
+      "deny tcp 192.168.10.0 0.0.0.255 192.168.130.0 0.0.0.255 eq 80",
+      "deny tcp 192.168.10.0 0.0.0.255 192.168.130.0 0.0.0.255 eq 8080",
+      "deny tcp 192.168.10.0 0.0.0.255 192.168.130.0 0.0.0.255 eq 443",
+      "permit ip any any",
+      "exit",
+      "interface FastEthernet0/0",
+      "ip access-group BLOCK_HTTP_USR in",
+      "end"
+    ]
+  },
+
+  "3": {
+    "description": "Control administrativo — SSH solo desde Admin, bloquea ICMP cruzado",
+    "TOR2": [
+      "enable",
+      "configure terminal",
+      "ip access-list extended CTRL_ADMIN",
+      "deny icmp 192.168.110.0 0.0.0.255 192.168.30.0 0.0.0.255",
+      "deny icmp 192.168.120.0 0.0.0.255 192.168.30.0 0.0.0.255",
+      "deny icmp 192.168.130.0 0.0.0.255 192.168.30.0 0.0.0.255",
+      "permit tcp 192.168.110.0 0.0.0.255 any eq 22",
+      "deny tcp 192.168.120.0 0.0.0.255 any eq 22",
+      "deny icmp 192.168.120.0 0.0.0.255 192.168.130.0 0.0.0.255",
+      "permit ip any any",
+      "exit",
+      "interface FastEthernet2/1",
+      "ip access-group CTRL_ADMIN in",
+      "end"
+    ]
+  }
+}
