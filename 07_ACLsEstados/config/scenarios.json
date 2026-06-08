@@ -4,6 +4,7 @@
     "Edge" : [
       "enable",
       "configure terminal",
+      "no ip access-list extended BLOCK_DDOS",
       "no ip access-list standard BLOCK_DDOS",
       "interface FastEthernet0/0",
       "no ip access-group BLOCK_DDOS in",
@@ -13,32 +14,40 @@
       "enable",
       "configure terminal",
       "no ip access-list extended BLOCK_HTTP_USR",
+      "no ip access-list extended CTRL_USUARIOS",
       "interface FastEthernet0/0",
       "no ip access-group BLOCK_HTTP_USR in",
+      "no ip access-group CTRL_USUARIOS in",
       "end"
     ],
     "TOR2" : [
       "enable",
       "configure terminal",
+      "no ip access-list standard BLOCK_DDOS",
+      "interface FastEthernet1/1",
+      "no ip access-group BLOCK_DDOS out",
       "no ip access-list extended CTRL_ADMIN",
-      "interface FastEthernet2/1",
+      "interface FastEthernet0/0",
+      "no ip access-group CTRL_ADMIN in",
+      "interface FastEthernet1/0",
       "no ip access-group CTRL_ADMIN in",
       "end"
     ]
   },
 
   "1": {
-    "description": "Mitigación DDoS — bloquea Internet hacia Intranet",
-    "Edge": [
+    "description": "Mitigación DDoS (Estándar en TOR-2) — bloquea Internet, permite admin/dev",
+    "TOR2": [
       "enable",
       "configure terminal",
       "ip access-list standard BLOCK_DDOS",
       "permit 192.168.110.0 0.0.0.255",
       "permit 192.168.120.0 0.0.0.255",
+      "permit 10.10.10.0 0.0.0.255",
       "deny any log",
       "exit",
-      "interface FastEthernet0/0",
-      "ip access-group BLOCK_DDOS in",
+      "interface FastEthernet1/1",
+      "ip access-group BLOCK_DDOS out",
       "end"
     ]
   },
@@ -61,21 +70,32 @@
   },
 
   "3": {
-    "description": "Control administrativo — SSH solo desde Admin, bloquea ICMP cruzado",
+    "description": "Control administrativo (Mezclada en TOR-1 y TOR-2)",
     "TOR2": [
       "enable",
       "configure terminal",
       "ip access-list extended CTRL_ADMIN",
-      "deny icmp 192.168.110.0 0.0.0.255 192.168.30.0 0.0.0.255",
-      "deny icmp 192.168.120.0 0.0.0.255 192.168.30.0 0.0.0.255",
-      "deny icmp 192.168.130.0 0.0.0.255 192.168.30.0 0.0.0.255",
-      "permit tcp 192.168.110.0 0.0.0.255 any eq 22",
-      "deny tcp 192.168.120.0 0.0.0.255 any eq 22",
-      "deny icmp 192.168.120.0 0.0.0.255 192.168.130.0 0.0.0.255",
+      "permit tcp 192.168.120.0 0.0.0.255 192.168.30.0 0.0.0.255 eq 22",
+      "deny ip 192.168.120.0 0.0.0.255 192.168.30.0 0.0.0.255",
+      "deny ip 192.168.110.0 0.0.0.255 192.168.30.0 0.0.0.255",
+      "deny icmp 192.168.110.0 0.0.0.255 192.168.130.0 0.0.0.255",
       "permit ip any any",
       "exit",
-      "interface FastEthernet2/1",
+      "interface FastEthernet0/0",
       "ip access-group CTRL_ADMIN in",
+      "interface FastEthernet1/0",
+      "ip access-group CTRL_ADMIN in",
+      "end"
+    ],
+    "TOR1": [
+      "enable",
+      "configure terminal",
+      "ip access-list extended CTRL_USUARIOS",
+      "deny ip 192.168.10.0 0.0.0.255 192.168.130.0 0.0.0.255",
+      "permit ip any any",
+      "exit",
+      "interface FastEthernet0/0",
+      "ip access-group CTRL_USUARIOS in",
       "end"
     ]
   }
