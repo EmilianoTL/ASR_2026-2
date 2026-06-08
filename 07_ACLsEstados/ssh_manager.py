@@ -1,3 +1,5 @@
+import warnings
+warnings.filterwarnings("ignore", message=".*TripleDES.*")
 import paramiko
 import time
 import json
