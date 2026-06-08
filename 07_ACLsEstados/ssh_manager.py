@@ -3,17 +3,6 @@ import time
 import json
 import os
 
-legacy_kex = (
-    'diffie-hellman-group1-sha1',
-    'diffie-hellman-group14-sha1',
-    'diffie-hellman-group-exchange-sha1'
-)
-# Obtenemos los algoritmos actuales y agregamos los legacy al inicio
-current_kex = paramiko.Transport._preferred_kex
-paramiko.Transport._preferred_kex = tuple(
-    [k for k in legacy_kex if k not in current_kex] + list(current_kex)
-)
-
 ROUTERS_FILE = os.path.join(os.path.dirname(__file__), "config", "routers.json")
 
 with open(ROUTERS_FILE) as f:
