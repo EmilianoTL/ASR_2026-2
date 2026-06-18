@@ -93,3 +93,8 @@
           - ip dns server
           - ip domain-lookup
           - ip host smeserver.local 102.20.20.1
+
+    - name: EDGE | Prevenir bucles de enrutamiento NAT (Ruta Null0)
+      cisco.ios.ios_config:
+        lines:
+          - ip route 102.20.20.0 255.255.255.248 Null0
