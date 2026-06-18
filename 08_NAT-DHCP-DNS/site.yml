@@ -87,12 +87,18 @@
           - ip nat inside source list 1 pool POOL_ISP overload
           - ip nat inside source static 192.168.0.10 102.20.20.1
 
-    - name: EDGE | Activar y configurar Servicio DNS
+    - name: EDGE | Limpiar registro DNS anterior (Desvincular SME)
+      cisco.ios.ios_config:
+        lines:
+          - no ip host smeserver.local
+      ignore_errors: yes
+
+    - name: EDGE | Activar y configurar Servicio DNS (Vincular Host Externo)
       cisco.ios.ios_config:
         lines:
           - ip dns server
           - ip domain-lookup
-          - ip host smeserver.local 102.20.20.1
+          - ip host externo.local 20.20.20.20
 
     - name: EDGE | Prevenir bucles de enrutamiento NAT (Ruta Null0)
       cisco.ios.ios_config:
