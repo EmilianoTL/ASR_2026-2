@@ -1,0 +1,95 @@
+---
+- name: Configurar DHCP en Routers de Acceso (TOR)
+  hosts: tor_routers
+  gather_facts: false
+  tasks:
+    # ----------------------------------------------------
+    # CONFIGURACIONES PARA TOR-1
+    # ----------------------------------------------------
+    - name: TOR-1 | Excluir direcciones IP fijas
+      cisco.ios.ios_config:
+        lines:
+          - ip dhcp excluded-address 192.168.0.1 192.168.0.10
+          - ip dhcp excluded-address 192.168.1.1 192.168.1.10
+      when: inventory_hostname == 'tor1'
+
+    - name: TOR-1 | Crear Pool DHCP para Red 192.168.0.0
+      cisco.ios.ios_config:
+        lines:
+          - network 192.168.0.0 255.255.255.0
+          - default-router 192.168.0.1
+          - dns-server 10.10.10.1
+        parents: ip dhcp pool RED_192_168_0
+      when: inventory_hostname == 'tor1'
+
+    - name: TOR-1 | Crear Pool DHCP para Red 192.168.1.0
+      cisco.ios.ios_config:
+        lines:
+          - network 192.168.1.0 255.255.255.0
+          - default-router 192.168.1.1
+          - dns-server 10.10.10.1
+        parents: ip dhcp pool RED_192_168_1
+      when: inventory_hostname == 'tor1'
+
+    # ----------------------------------------------------
+    # CONFIGURACIONES PARA TOR-2
+    # ----------------------------------------------------
+    - name: TOR-2 | Excluir direcciones IP fijas
+      cisco.ios.ios_config:
+        lines:
+          - ip dhcp excluded-address 192.168.10.1 192.168.10.10
+          - ip dhcp excluded-address 192.168.11.1 192.168.11.10
+      when: inventory_hostname == 'tor2'
+
+    - name: TOR-2 | Crear Pool DHCP para Red 192.168.10.0
+      cisco.ios.ios_config:
+        lines:
+          - network 192.168.10.0 255.255.255.0
+          - default-router 192.168.10.1
+          - dns-server 10.10.10.1
+        parents: ip dhcp pool RED_192_168_10
+      when: inventory_hostname == 'tor2'
+
+    - name: TOR-2 | Crear Pool DHCP para Red 192.168.11.0
+      cisco.ios.ios_config:
+        lines:
+          - network 192.168.11.0 255.255.255.0
+          - default-router 192.168.11.1
+          - dns-server 10.10.10.1
+        parents: ip dhcp pool RED_192_168_11
+      when: inventory_hostname == 'tor2'
+
+
+- name: Configurar NAT y DNS en Router de Frontera (Edge)
+  hosts: edge_routers
+  gather_facts: false
+  tasks:
+    - name: EDGE | Activar NAT Outside (Hacia ISP)
+      cisco.ios.ios_config:
+        lines:
+          - ip nat outside
+        parents: interface FastEthernet0/0
+
+    - name: EDGE | Activar NAT Inside (Hacia red interna)
+      cisco.ios.ios_config:
+        lines:
+          - ip nat inside
+        parents: "{{ item }}"
+      loop:
+        - interface FastEthernet1/0
+        - interface FastEthernet2/0
+
+    - name: EDGE | Configurar Reglas y Pools NAT
+      cisco.ios.ios_config:
+        lines:
+          - access-list 1 permit 192.168.0.0 0.0.255.255
+          - ip nat pool POOL_ISP 102.20.20.2 102.20.20.6 netmask 255.255.255.248
+          - ip nat inside source list 1 pool POOL_ISP overload
+          - ip nat inside source static 192.168.0.10 102.20.20.1
+
+    - name: EDGE | Activar y configurar Servicio DNS
+      cisco.ios.ios_config:
+        lines:
+          - ip dns server
+          - ip domain-lookup
+          - ip host smeserver.local 102.20.20.1
