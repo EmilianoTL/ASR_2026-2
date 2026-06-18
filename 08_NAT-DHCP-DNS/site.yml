@@ -26,7 +26,7 @@
       cisco.ios.ios_config:
         lines:
           - host 192.168.0.10 255.255.255.0
-          - hardware-address 0242.482b.2200
+          - client-identifier 0102.4248.2b22.00
           - default-router 192.168.0.1
           - dns-server 10.10.10.1
         parents: ip dhcp pool RESERVACION_SME
