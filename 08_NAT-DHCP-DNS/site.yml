@@ -22,6 +22,16 @@
         parents: ip dhcp pool RED_192_168_0
       when: inventory_hostname == 'tor1'
 
+    - name: TOR-1 | Reservar IP fija por DHCP para el servidor SME (LAMP)
+      cisco.ios.ios_config:
+        lines:
+          - host 192.168.0.10 255.255.255.0
+          - hardware-address 0242.482b.2200
+          - default-router 192.168.0.1
+          - dns-server 10.10.10.1
+        parents: ip dhcp pool RESERVACION_SME
+      when: inventory_hostname == 'tor1'
+
     - name: TOR-1 | Crear Pool DHCP para Red 192.168.1.0
       cisco.ios.ios_config:
         lines:
@@ -79,13 +89,13 @@
         - interface FastEthernet1/0
         - interface FastEthernet2/0
 
-    - name: EDGE | Configurar Reglas y Pools NAT (Entrada y Salida)
+    - name: EDGE | Configurar Reglas y Pools NAT (Entrada Estática LAMP y Salida)
       cisco.ios.ios_config:
         lines:
           - access-list 1 permit 192.168.0.0 0.0.255.255
           - ip nat pool POOL_ISP 102.20.20.2 102.20.20.6 netmask 255.255.255.248
           - ip nat inside source list 1 pool POOL_ISP overload
-          - ip nat inside source static 192.168.0.11 102.20.20.1
+          - ip nat inside source static 192.168.0.10 102.20.20.1
 
     - name: EDGE | Limpiar registro DNS viejo si existiera
       cisco.ios.ios_config:
