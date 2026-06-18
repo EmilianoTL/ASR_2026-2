@@ -6,11 +6,12 @@
     # ----------------------------------------------------
     # LIMPIEZA AUTOMÁTICA DE MEMORIA DHCP
     # ----------------------------------------------------
-    - name: AMBOS TOR | Forzar borrado del caché de DHCP (clear ip dhcp binding *)
+    - name: AMBOS TOR | Forzar borrado del caché de DHCP
       cisco.ios.ios_command:
         commands:
           - clear ip dhcp binding *
-      ignore_errors: false
+      become: true
+      become_method: enable
 
     # ----------------------------------------------------
     # CONFIGURACIONES PARA TOR-1
