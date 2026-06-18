@@ -79,21 +79,21 @@
         - interface FastEthernet1/0
         - interface FastEthernet2/0
 
-    - name: EDGE | Configurar Reglas y Pools NAT
+    - name: EDGE | Configurar Reglas y Pools NAT (Entrada y Salida)
       cisco.ios.ios_config:
         lines:
           - access-list 1 permit 192.168.0.0 0.0.255.255
           - ip nat pool POOL_ISP 102.20.20.2 102.20.20.6 netmask 255.255.255.248
           - ip nat inside source list 1 pool POOL_ISP overload
-          - ip nat inside source static 192.168.0.10 102.20.20.1
+          - ip nat inside source static 192.168.0.11 102.20.20.1
 
-    - name: EDGE | Limpiar registro DNS anterior (Desvincular SME)
+    - name: EDGE | Limpiar registro DNS viejo si existiera
       cisco.ios.ios_config:
         lines:
           - no ip host smeserver.local
-      ignore_errors: yes
+      ignore_errors: false
 
-    - name: EDGE | Activar y configurar Servicio DNS (Vincular Host Externo)
+    - name: EDGE | Activar y configurar Servicio DNS hacia Host Externo
       cisco.ios.ios_config:
         lines:
           - ip dns server
