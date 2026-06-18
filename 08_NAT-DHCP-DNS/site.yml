@@ -4,14 +4,25 @@
   gather_facts: false
   tasks:
     # ----------------------------------------------------
+    # LIMPIEZA AUTOMÁTICA DE MEMORIA DHCP
+    # ----------------------------------------------------
+    - name: AMBOS TOR | Forzar borrado del caché de DHCP (clear ip dhcp binding *)
+      cisco.ios.ios_command:
+        commands:
+          - clear ip dhcp binding *
+      ignore_errors: false
+
+    # ----------------------------------------------------
     # CONFIGURACIONES PARA TOR-1
     # ----------------------------------------------------
-    - name: TOR-1 | Excluir direcciones IP fijas
+    - name: TOR-1 | Limpiar exclusiones de IP anteriores
       cisco.ios.ios_config:
         lines:
-          - ip dhcp excluded-address 192.168.0.1 192.168.0.10
-          - ip dhcp excluded-address 192.168.1.1 192.168.1.10
+          - no ip dhcp excluded-address 192.168.0.1 192.168.0.10
+          - no ip dhcp excluded-address 192.168.0.1 192.168.0.9
+          - no ip dhcp excluded-address 192.168.1.1 192.168.1.10
       when: inventory_hostname == 'tor1'
+      ignore_errors: false
 
     - name: TOR-1 | Crear Pool DHCP para Red 192.168.0.0
       cisco.ios.ios_config:
@@ -44,12 +55,13 @@
     # ----------------------------------------------------
     # CONFIGURACIONES PARA TOR-2
     # ----------------------------------------------------
-    - name: TOR-2 | Excluir direcciones IP fijas
+    - name: TOR-2 | Limpiar exclusiones de IP anteriores
       cisco.ios.ios_config:
         lines:
-          - ip dhcp excluded-address 192.168.10.1 192.168.10.10
-          - ip dhcp excluded-address 192.168.11.1 192.168.11.10
+          - no ip dhcp excluded-address 192.168.10.1 192.168.10.10
+          - no ip dhcp excluded-address 192.168.11.1 192.168.11.10
       when: inventory_hostname == 'tor2'
+      ignore_errors: false
 
     - name: TOR-2 | Crear Pool DHCP para Red 192.168.10.0
       cisco.ios.ios_config:
@@ -89,7 +101,7 @@
         - interface FastEthernet1/0
         - interface FastEthernet2/0
 
-    - name: EDGE | Configurar Reglas y Pools NAT (Entrada Estática LAMP y Salida)
+    - name: EDGE | Configurar Reglas y Pools NAT (Entrada Estática LAMP y Salida Dinámica)
       cisco.ios.ios_config:
         lines:
           - access-list 1 permit 192.168.0.0 0.0.255.255
