@@ -21,7 +21,32 @@ echo "4. Levantando eth1 (Internet Real)..."
 ifup eth1
 
 echo "5. Levantando eth0 (Laboratorio GNS3)..."
-ifup eth0
+# Lanzamos ifup en segundo plano para que el script no se quede pasmado
+ifup eth0 &
+PID_IFUP=$!
+
+echo "   Esperando 5 segundos para que el router asigne una IP..."
+sleep 5
+
+# Verificamos si la interfaz eth0 consiguió una IP
+if ! ip addr show eth0 | grep -q "inet "; then
+    echo "   [!] DHCP falló o tardó demasiado."
+    echo "   [!] Rescatando interfaz... Asignando IP provisional (192.168.0.50)."
+    
+    # Detenemos el ifup y el cliente DHCP que se quedaron en bucle
+    kill $PID_IFUP 2>/dev/null
+    killall udhcpc 2>/dev/null
+    
+    # Limpiamos y aplicamos configuración manual
+    ip addr flush dev eth0
+    ip addr add 192.168.0.50/24 dev eth0
+    ip link set dev eth0 up
+    
+    # Agregamos la ruta hacia el router (ignoramos error si ya existe)
+    ip route add default via 192.168.0.1 2>/dev/null
+else
+    echo "   [OK] IP obtenida por DHCP correctamente."
+fi
 
 echo "6. Aplicando contramedida de DNS para GitHub..."
 echo "nameserver 8.8.8.8" > /etc/resolv.conf
